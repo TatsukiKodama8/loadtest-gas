@@ -1,25 +1,5 @@
 import { Selector } from "./selector";
-
-export function col_(a1: string) {
-  let n = 0;
-  for (const ch of a1.toUpperCase()) {
-    n = n * 26 + (ch.charCodeAt(0) - 64);
-  }
-  return n;
-}
-
-export const SheetConfig = Object.freeze({
-  SHEET_NAME: "test",
-  HEADER_ROWS: 2,
-  COL_DATE: col_("H"),
-  COL_START_TIME: col_("I"),
-  COL_END_TIME: col_("J"),
-});
-
-export const GcpConfig = Object.freeze({
-  PROJECT_ID: "shinise-dev",
-  LOCATION: "asia-northeast1",
-});
+import { col_ } from "./utils";
 
 export const Targets = Object.freeze([
   {
@@ -157,7 +137,7 @@ export const Metrics = Object.freeze([
       return `max_over_time(${sel}[${range}])`;
     },
   },
-])
+]);
 
 export const OutputColumns: Record<string, Record<string, number>> = Object.freeze({
   "stock-conversion": {

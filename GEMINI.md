@@ -22,7 +22,9 @@ Google Apps Script (GAS) tool to collect performance metrics from Google Cloud M
 The project uses standard ESModules (`import/export`), which are bundled by `esbuild` for GAS compatibility.
 
 - `src/main.ts`: Entry point. Exposes global functions to GAS.
-- `src/const.ts`: Configuration center (Sheet layout, targets, metrics).
+- `src/config.ts`: Infrastructure and App-level settings.
+- `src/definitions.ts`: Load test definitions (Targets, Metrics, Mappings).
+- `src/utils.ts`: Utility helper functions.
 - `src/metricsService.ts`: Metric calculation logic.
 - `src/prometheusApi.ts`: Prometheus API client.
 - `src/monitoringClient.ts`: Auth & HTTP client.

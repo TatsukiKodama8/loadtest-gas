@@ -15,6 +15,7 @@
 - [x] テストコードの正常化 (Vitest)
 - [x] GAS 実行用のグローバルエントリーポイント設定 (esbuild footer)
 - [x] 構造化ログ（Structured Logging）の設計と導入
+- [x] const.ts の役割ごとの分解 (config.ts, definitions.ts, utils.ts)
 
 ## ログ設計のポイント
 - **JSON形式**: Cloud Logging での検索性を高めるため、全てのログを JSON で出力。

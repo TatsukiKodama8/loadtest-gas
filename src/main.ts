@@ -1,4 +1,5 @@
-import { SheetConfig, Targets, Metrics, OutputColumns } from "./const";
+import { SheetConfig } from "./config";
+import { Targets, Metrics, OutputColumns } from "./definitions";
 import { MetricsService } from "./metricsService";
 import { Logger } from "./logger";
 

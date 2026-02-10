@@ -25,6 +25,29 @@ var GAS_ENTRY = (() => {
     main: () => main
   });
 
+  // src/utils.ts
+  function col_(a1) {
+    let n = 0;
+    for (const ch of a1.toUpperCase()) {
+      n = n * 26 + (ch.charCodeAt(0) - 64);
+    }
+    return n;
+  }
+
+  // src/config.ts
+  var SheetConfig = Object.freeze({
+    SHEET_NAME: "test",
+    HEADER_ROWS: 2,
+    // 日付、テスト開始時刻、終了時刻
+    COL_DATE: col_("H"),
+    COL_START_TIME: col_("I"),
+    COL_END_TIME: col_("J")
+  });
+  var GcpConfig = Object.freeze({
+    PROJECT_ID: "shinise-dev",
+    LOCATION: "asia-northeast1"
+  });
+
   // src/logger.ts
   var Logger = (() => {
     function info(message, context) {
@@ -90,25 +113,7 @@ var GAS_ENTRY = (() => {
     return Object.freeze({ buildSelector });
   })();
 
-  // src/const.ts
-  function col_(a1) {
-    let n = 0;
-    for (const ch of a1.toUpperCase()) {
-      n = n * 26 + (ch.charCodeAt(0) - 64);
-    }
-    return n;
-  }
-  var SheetConfig = Object.freeze({
-    SHEET_NAME: "test",
-    HEADER_ROWS: 2,
-    COL_DATE: col_("H"),
-    COL_START_TIME: col_("I"),
-    COL_END_TIME: col_("J")
-  });
-  var GcpConfig = Object.freeze({
-    PROJECT_ID: "shinise-dev",
-    LOCATION: "asia-northeast1"
-  });
+  // src/definitions.ts
   var Targets = Object.freeze([
     {
       key: "stock-conversion",

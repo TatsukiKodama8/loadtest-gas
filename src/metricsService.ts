@@ -1,4 +1,4 @@
-import { GcpConfig } from "./const";
+import { GcpConfig } from "./config";
 import { PrometheusApi } from "./prometheusApi";
 import { Logger } from "./logger";
 
