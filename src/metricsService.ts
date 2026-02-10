@@ -1,13 +1,16 @@
-const MetricsService = (() => {
+import { GcpConfig } from "./const";
+import { PrometheusApi } from "./prometheusApi";
+
+export const MetricsService = (() => {
   function toPromDurationSeconds_(startJst: Date, endJst: Date): string {
     const sec = Math.max(1, Math.floor((endJst.getTime() - startJst.getTime()) / 1000));
     return `${sec}s`;
   }
 
   function fetchScalarMaxInRangeJst(p: { startJst: Date, endJst: Date, promql: string }): number | null {
-    const projectId = (GcpConfig as any).PROJECT_ID;
+    const projectId = GcpConfig.PROJECT_ID;
 
-    const r = (PrometheusApi as any).query({
+    const r = PrometheusApi.query({
       projectId,
       query: p.promql,
       time: p.endJst,

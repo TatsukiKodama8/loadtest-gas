@@ -1,19 +1,27 @@
-const SheetConfig = Object.freeze({
+import { Selector } from "./selector";
+
+export function col_(a1: string) {
+  let n = 0;
+  for (const ch of a1.toUpperCase()) {
+    n = n * 26 + (ch.charCodeAt(0) - 64);
+  }
+  return n;
+}
+
+export const SheetConfig = Object.freeze({
   SHEET_NAME: "test",
   HEADER_ROWS: 2,
-
-  // 日付、テスト開始時刻、終了時刻
   COL_DATE: col_("H"),
   COL_START_TIME: col_("I"),
   COL_END_TIME: col_("J"),
 });
 
-const GcpConfig = Object.freeze({
+export const GcpConfig = Object.freeze({
   PROJECT_ID: "shinise-dev",
   LOCATION: "asia-northeast1",
 });
 
-const Targets = Object.freeze([
+export const Targets = Object.freeze([
   {
     key: "stock-conversion",
     labels: {
@@ -128,11 +136,11 @@ const Targets = Object.freeze([
   },
 ]);
 
-const Metrics = Object.freeze([
+export const Metrics = Object.freeze([
   {
     key: "cpu-limit-util-max",
     queryBuilder: (t: any, range: string) => {
-      const sel = buildSelector(
+      const sel = Selector.buildSelector(
         "kubernetes.io/container/cpu/limit_utilization", 
         t.labels
       );
@@ -142,7 +150,7 @@ const Metrics = Object.freeze([
   {
     key: "mem-limit-util-max",
     queryBuilder: (t: any, range: string) => {
-      const sel = buildSelector(
+      const sel = Selector.buildSelector(
         "kubernetes.io/container/memory/limit_utilization", 
         t.labels
       );
@@ -151,7 +159,7 @@ const Metrics = Object.freeze([
   },
 ])
 
-const OutputColumns: Record<string, Record<string, number>> = Object.freeze({
+export const OutputColumns: Record<string, Record<string, number>> = Object.freeze({
   "stock-conversion": {
     "cpu-limit-util-max": col_("Y"),
     "mem-limit-util-max": col_("Z"),
@@ -209,14 +217,3 @@ const OutputColumns: Record<string, Record<string, number>> = Object.freeze({
     "mem-limit-util-max": col_("AZ"),
   }
 });
-
-
-function col_(a1: string) {
-  // 列のアルファベット表記を数値に変換するヘルパー関数
-  // "A"->1, "Z"->26, "AA"->27...
-  let n = 0;
-  for (const ch of a1.toUpperCase()) {
-    n = n * 26 + (ch.charCodeAt(0) - 64);
-  }
-  return n;
-}

@@ -3,18 +3,26 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "scripts": {
-    "build": "rm -rf dist && mkdir -p dist && tsc && cp src/appsscript.json dist/", 
-    "push": "npm run build && clasp push",
-    "pull": "clasp pull", 
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
+    "scripts": {
+      "build": "rm -rf dist && mkdir -p dist && esbuild src/main.ts --bundle --outfile=dist/main.gs --format=iife --global-name=GAS_ENTRY --footer:js=\"function main() { GAS_ENTRY.main(); }\" && cp src/appsscript.json dist/", 
+      "push": "npm run build && clasp push",
+      "pull": "clasp pull", 
+      "test": "vitest run",
+      "lint": "eslint src/**/*.ts",
+      "format": "prettier --write src/**/*.ts"
+    },  "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
     "@types/google-apps-script": "^2.0.8",
-    "typescript": "^5.9.3"
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "esbuild": "^0.27.3",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.5.0",
+    "typescript": "^5.9.3",
+    "vitest": "^2.1.8"
   }
 }

@@ -1,4 +1,10 @@
-function main() {
+import { SheetConfig, Targets, Metrics, OutputColumns } from "./const";
+import { MetricsService } from "./metricsService";
+
+/**
+ * Global entry point for GAS
+ */
+export function main() {
   runUpdateAllRows();
 }
 
@@ -35,33 +41,17 @@ function updateRow_(sheet: GoogleAppsScript.Spreadsheet.Sheet, row: number) {
     return;
   }
 
-  const range = MetricsService.toPromDurationSeconds_(startJst, endJst);
+  const range = (MetricsService as any).toPromDurationSeconds_(startJst, endJst);
 
   for (const t of (Targets as any[])) {
     const outByMetric = (OutputColumns as any)[t.key];
-    if (!outByMetric) {
-      Logger.log(`[main.gs] OutputColumns missing targetKey=${t.key}`);
-      continue;
-    }
+    if (!outByMetric) continue;
 
     for (const m of (Metrics as any[])) {
       const col = outByMetric[m.key];
-      if (!col) {
-        Logger.log(`[main.gs] OutputColumns missing mapping target=${t.key} metric=${m.key}`);
-        continue;
-      }
+      if (!col) continue;
 
       const promql = m.queryBuilder(t, range);
-      Logger.log(`[main.gs/updateRow_] labelsRaw=${JSON.stringify(t.labels)}`);
-      Logger.log(`[main.gs/updateRow_] selectorParts=${promql.match(/\{.*\}/)?.[0] ?? "(no selector)"}`);
-      Logger.log(`
-        [main.gs/updateRow_]
-        targetKey: ${t.key}
-        metricKey: ${m.key}
-        col: ${col}
-        promql: ${promql}
-      `);
-
 
       try {
         const v = MetricsService.fetchScalarMaxInRangeJst({
@@ -79,9 +69,6 @@ function updateRow_(sheet: GoogleAppsScript.Spreadsheet.Sheet, row: number) {
   }
 }
 
-/**
- * 出力列（Targets × Metrics）を空にする
- */
 function clearOutputs_(sheet: GoogleAppsScript.Spreadsheet.Sheet, row: number) {
   for (const t of (Targets as any[])) {
     const outByMetric = (OutputColumns as any)[t.key];
@@ -95,10 +82,7 @@ function clearOutputs_(sheet: GoogleAppsScript.Spreadsheet.Sheet, row: number) {
   }
 }
 
-/**
- * 日付セル(Date) と 時刻セル(Date) を合成して JST の Date を作る
- */
-function combineDateAndTime_(datePart: any, timePart: any): Date | null {
+export function combineDateAndTime_(datePart: any, timePart: any): Date | null {
   if (!(datePart instanceof Date) || isNaN(datePart.getTime())) return null;
   if (!(timePart instanceof Date) || isNaN(timePart.getTime())) return null;
 
