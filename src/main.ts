@@ -2,13 +2,13 @@ import { SheetConfig, Targets, Metrics, OutputColumns } from "./const";
 import { MetricsService } from "./metricsService";
 import { Logger } from "./logger";
 
-const FILE = "main.ts";
+const file = "main.ts";
 
 /**
  * Global entry point for GAS
  */
 export function main() {
-  Logger.trace(FILE, "main", {}, () => {
+  Logger.trace(file, "main", {}, () => {
     runUpdateAllRows();
   });
 }
@@ -24,7 +24,7 @@ function runUpdateAllRows() {
   }
 
   const lastRow = sheet.getLastRow();
-  Logger.info("Starting batch update", { FILE, func: "runUpdateAllRows", lastRow });
+  Logger.info("Starting batch update", { file, func: "runUpdateAllRows", lastRow });
 
   for (let row = SheetConfig.HEADER_ROWS + 1; row <= lastRow; row++) {
     updateRow_(sheet, row);
@@ -32,7 +32,7 @@ function runUpdateAllRows() {
 }
 
 function updateRow_(sheet: GoogleAppsScript.Spreadsheet.Sheet, row: number) {
-  Logger.trace(FILE, "updateRow_", { row }, () => {
+  Logger.trace(file, "updateRow_", { row }, () => {
     const datePart = sheet.getRange(row, SheetConfig.COL_DATE).getValue();
     const startPart = sheet.getRange(row, SheetConfig.COL_START_TIME).getValue();
     const endPart = sheet.getRange(row, SheetConfig.COL_END_TIME).getValue();
@@ -42,7 +42,7 @@ function updateRow_(sheet: GoogleAppsScript.Spreadsheet.Sheet, row: number) {
 
     if (startJst == null || endJst == null || endJst <= startJst) {
       Logger.info("Invalid time range, skipping row", {
-        FILE,
+        file,
         func: "updateRow_",
         row,
         startJst,
@@ -74,7 +74,7 @@ function updateRow_(sheet: GoogleAppsScript.Spreadsheet.Sheet, row: number) {
           sheet.getRange(row, col).setValue(v == null ? "" : v);
         } catch (e) {
           Logger.error("Failed to fetch metric", e, {
-            FILE,
+            file,
             func: "updateRow_",
             row,
             target: t.key,

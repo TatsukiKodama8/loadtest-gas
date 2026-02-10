@@ -25,21 +25,67 @@ var GAS_ENTRY = (() => {
     main: () => main
   });
 
+  // src/logger.ts
+  var Logger = (() => {
+    function info(message, context) {
+      const payload = {
+        severity: "INFO",
+        message,
+        timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+        ...context
+      };
+      console.log(JSON.stringify(payload));
+    }
+    function error(message, err, context) {
+      const payload = {
+        severity: "ERROR",
+        message,
+        exception: err instanceof Error ? err.message : String(err),
+        stack: err instanceof Error ? err.stack : void 0,
+        timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+        ...context
+      };
+      console.error(JSON.stringify(payload));
+    }
+    function trace(file6, func, args, execute) {
+      const start = Date.now();
+      info(`[START] ${func}`, { file: file6, func, args });
+      try {
+        const result = execute();
+        const duration = Date.now() - start;
+        info(`[END] ${func}`, { file: file6, func, duration: `${duration}ms` });
+        return result;
+      } catch (e) {
+        const duration = Date.now() - start;
+        error(`[FAILED] ${func}`, e, { file: file6, func, duration: `${duration}ms`, args });
+        throw e;
+      }
+    }
+    return Object.freeze({
+      info,
+      error,
+      trace
+    });
+  })();
+
   // src/selector.ts
+  var file = "selector.ts";
   var Selector = (() => {
     function buildSelector(metricName, labels) {
-      const allowedKeys = /* @__PURE__ */ new Set([
-        "__name__",
-        "monitored_resource",
-        "location",
-        "cluster",
-        "namespace_name",
-        "pod_name",
-        "container_name"
-      ]);
-      const merged = { __name__: metricName, ...labels ?? {} };
-      const parts = Object.entries(merged).filter(([, v]) => v !== null && v !== void 0 && v !== "").filter(([k]) => allowedKeys.has(k)).map(([k, v]) => `"${k}"="${String(v).replaceAll('"', '"')}"`);
-      return `{${parts.join(",")}}`;
+      return Logger.trace(file, "buildSelector", { metricName, labels }, () => {
+        const allowedKeys = /* @__PURE__ */ new Set([
+          "__name__",
+          "monitored_resource",
+          "location",
+          "cluster",
+          "namespace_name",
+          "pod_name",
+          "container_name"
+        ]);
+        const merged = { __name__: metricName, ...labels ?? {} };
+        const parts = Object.entries(merged).filter(([, v]) => v !== null && v !== void 0 && v !== "").filter(([k]) => allowedKeys.has(k)).map(([k, v]) => `"${k}"="${String(v).replaceAll('"', '"')}"`);
+        return `{${parts.join(",")}}`;
+      });
     }
     return Object.freeze({ buildSelector });
   })();
@@ -258,51 +304,8 @@ var GAS_ENTRY = (() => {
     }
   });
 
-  // src/logger.ts
-  var Logger = (() => {
-    function info(message, context) {
-      const payload = {
-        severity: "INFO",
-        message,
-        timestamp: (/* @__PURE__ */ new Date()).toISOString(),
-        ...context
-      };
-      console.log(JSON.stringify(payload));
-    }
-    function error(message, err, context) {
-      const payload = {
-        severity: "ERROR",
-        message,
-        exception: err instanceof Error ? err.message : String(err),
-        stack: err instanceof Error ? err.stack : void 0,
-        timestamp: (/* @__PURE__ */ new Date()).toISOString(),
-        ...context
-      };
-      console.error(JSON.stringify(payload));
-    }
-    function trace(file, func, args, execute) {
-      const start = Date.now();
-      info(`[START] ${func}`, { file, func, args });
-      try {
-        const result = execute();
-        const duration = Date.now() - start;
-        info(`[END] ${func}`, { file, func, duration: `${duration}ms` });
-        return result;
-      } catch (e) {
-        const duration = Date.now() - start;
-        error(`[FAILED] ${func}`, e, { file, func, duration: `${duration}ms`, args });
-        throw e;
-      }
-    }
-    return Object.freeze({
-      info,
-      error,
-      trace
-    });
-  })();
-
   // src/monitoringClient.ts
-  var FILE = "monitoringClient.ts";
+  var file2 = "monitoringClient.ts";
   var MonitoringClient = (() => {
     function getAccessToken_() {
       return ScriptApp.getOAuthToken();
@@ -314,7 +317,7 @@ var GAS_ENTRY = (() => {
         Authorization: `Bearer ${getAccessToken_()}`,
         "X-Goog-User-Project": opts.userProjectId
       });
-      Logger.info("Fetch URL", { FILE, func: "fetchJson", url, method });
+      Logger.info("Fetch URL", { file: file2, func: "fetchJson", url, method });
       const res = UrlFetchApp.fetch(url, { method, headers, muteHttpExceptions });
       const status = res.getResponseCode();
       const text = res.getContentText();
@@ -325,7 +328,7 @@ var GAS_ENTRY = (() => {
       } catch (e) {
       }
       if (status >= 400) {
-        Logger.error("Fetch failed", text, { FILE, func: "fetchJson", status, url });
+        Logger.error("Fetch failed", text, { file: file2, func: "fetchJson", status, url });
       }
       return { status, json, text, headers: resHeaders };
     }
@@ -333,10 +336,10 @@ var GAS_ENTRY = (() => {
   })();
 
   // src/prometheusApi.ts
-  var FILE2 = "prometheusApi.ts";
+  var file3 = "prometheusApi.ts";
   var PrometheusApi = (() => {
     function query(p) {
-      return Logger.trace(FILE2, "query", { query: p.query }, () => {
+      return Logger.trace(file3, "query", { query: p.query }, () => {
         const base = `https://monitoring.googleapis.com/v1/projects/${encodeURIComponent(p.projectId)}/location/global/prometheus/api/v1/query`;
         const url = base + `?query=${encodeURIComponent(p.query)}&time=${encodeURIComponent(p.time.toISOString())}`;
         const r = MonitoringClient.fetchJson(url, { userProjectId: p.projectId });
@@ -347,14 +350,14 @@ var GAS_ENTRY = (() => {
   })();
 
   // src/metricsService.ts
-  var FILE3 = "metricsService.ts";
+  var file4 = "metricsService.ts";
   var MetricsService = (() => {
     function toPromDurationSeconds_(startJst, endJst) {
       const sec = Math.max(1, Math.floor((endJst.getTime() - startJst.getTime()) / 1e3));
       return `${sec}s`;
     }
     function fetchScalarMaxInRangeJst(p) {
-      return Logger.trace(FILE3, "fetchScalarMaxInRangeJst", { promql: p.promql }, () => {
+      return Logger.trace(file4, "fetchScalarMaxInRangeJst", { promql: p.promql }, () => {
         const projectId = GcpConfig.PROJECT_ID;
         const r = PrometheusApi.query({
           projectId,
@@ -380,9 +383,9 @@ var GAS_ENTRY = (() => {
   })();
 
   // src/main.ts
-  var FILE4 = "main.ts";
+  var file5 = "main.ts";
   function main() {
-    Logger.trace(FILE4, "main", {}, () => {
+    Logger.trace(file5, "main", {}, () => {
       runUpdateAllRows();
     });
   }
@@ -395,13 +398,13 @@ var GAS_ENTRY = (() => {
       throw new Error(`Sheet not found: "${SheetConfig.SHEET_NAME}". Available: [${names}]`);
     }
     const lastRow = sheet.getLastRow();
-    Logger.info("Starting batch update", { FILE: FILE4, func: "runUpdateAllRows", lastRow });
+    Logger.info("Starting batch update", { file: file5, func: "runUpdateAllRows", lastRow });
     for (let row = SheetConfig.HEADER_ROWS + 1; row <= lastRow; row++) {
       updateRow_(sheet, row);
     }
   }
   function updateRow_(sheet, row) {
-    Logger.trace(FILE4, "updateRow_", { row }, () => {
+    Logger.trace(file5, "updateRow_", { row }, () => {
       const datePart = sheet.getRange(row, SheetConfig.COL_DATE).getValue();
       const startPart = sheet.getRange(row, SheetConfig.COL_START_TIME).getValue();
       const endPart = sheet.getRange(row, SheetConfig.COL_END_TIME).getValue();
@@ -409,7 +412,7 @@ var GAS_ENTRY = (() => {
       const endJst = combineDateAndTime_(datePart, endPart);
       if (startJst == null || endJst == null || endJst <= startJst) {
         Logger.info("Invalid time range, skipping row", {
-          FILE: FILE4,
+          file: file5,
           func: "updateRow_",
           row,
           startJst,
@@ -435,7 +438,7 @@ var GAS_ENTRY = (() => {
             sheet.getRange(row, col).setValue(v == null ? "" : v);
           } catch (e) {
             Logger.error("Failed to fetch metric", e, {
-              FILE: FILE4,
+              file: file5,
               func: "updateRow_",
               row,
               target: t.key,

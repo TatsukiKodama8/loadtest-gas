@@ -1,6 +1,6 @@
 import { Logger } from "./logger";
 
-const FILE = "monitoringClient.ts";
+const file = "monitoringClient.ts";
 
 export const MonitoringClient = (() => {
   function getAccessToken_(): string {
@@ -16,7 +16,7 @@ export const MonitoringClient = (() => {
       "X-Goog-User-Project": opts.userProjectId,
     });
 
-    Logger.info("Fetch URL", { FILE, func: "fetchJson", url, method });
+    Logger.info("Fetch URL", { file, func: "fetchJson", url, method });
 
     const res = UrlFetchApp.fetch(url, { method, headers, muteHttpExceptions });
 
@@ -32,7 +32,7 @@ export const MonitoringClient = (() => {
     }
 
     if (status >= 400) {
-      Logger.error("Fetch failed", text, { FILE, func: "fetchJson", status, url });
+      Logger.error("Fetch failed", text, { file, func: "fetchJson", status, url });
     }
 
     return { status, json, text, headers: resHeaders };

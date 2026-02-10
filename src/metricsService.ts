@@ -2,7 +2,7 @@ import { GcpConfig } from "./const";
 import { PrometheusApi } from "./prometheusApi";
 import { Logger } from "./logger";
 
-const FILE = "metricsService.ts";
+const file = "metricsService.ts";
 
 export const MetricsService = (() => {
   function toPromDurationSeconds_(startJst: Date, endJst: Date): string {
@@ -11,7 +11,7 @@ export const MetricsService = (() => {
   }
 
   function fetchScalarMaxInRangeJst(p: { startJst: Date, endJst: Date, promql: string }): number | null {
-    return Logger.trace(FILE, "fetchScalarMaxInRangeJst", { promql: p.promql }, () => {
+    return Logger.trace(file, "fetchScalarMaxInRangeJst", { promql: p.promql }, () => {
       const projectId = GcpConfig.PROJECT_ID;
 
       const r = PrometheusApi.query({

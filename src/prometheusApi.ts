@@ -1,11 +1,11 @@
 import { MonitoringClient } from "./monitoringClient";
 import { Logger } from "./logger";
 
-const FILE = "prometheusApi.ts";
+const file = "prometheusApi.ts";
 
 export const PrometheusApi = (() => {
   function query(p: { projectId: string, query: string, time: Date }) {
-    return Logger.trace(FILE, "query", { query: p.query }, () => {
+    return Logger.trace(file, "query", { query: p.query }, () => {
       const base =
         `https://monitoring.googleapis.com/v1/projects/${encodeURIComponent(p.projectId)}` +
         `/location/global/prometheus/api/v1/query`;
