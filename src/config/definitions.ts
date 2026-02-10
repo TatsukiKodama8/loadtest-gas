@@ -2,19 +2,26 @@ import { Selector, Labels } from "../core/selector";
 import { col_ } from "../utils/utils";
 
 /**
- * Labels for a monitored container target.
+ * Labels for a monitored target.
  */
 export interface TargetLabels extends Labels {
-  monitored_resource: string;
-  location: string;
-  container_name: string;
+  monitored_resource?: string;
+  location?: string;
+  container_name?: string;
+  queue?: string;
 }
 
 /**
  * Definition of a metric to be collected.
  */
 export interface MetricDefinition {
-  queryBuilder: (labels: TargetLabels, range: string) => string;
+  type: "prometheus" | "logging";
+  queryBuilder: (
+    labels: TargetLabels,
+    p: { range: string; startIso: string; endIso: string }
+  ) => string;
+  /** Used only for type: "logging" */
+  aggregator?: (payloads: string[]) => number;
 }
 
 export const Targets = Object.freeze({
@@ -88,28 +95,83 @@ export const Targets = Object.freeze({
     location: "asia-northeast1",
     container_name: "db-business10-rec-app",
   },
+  // RabbitMQ Queues
+  "mq-calculate-stock": {
+    location: "asia-northeast1",
+    queue: "CALCULATE_STOCK_PROCESS",
+  },
+  "mq-calculate-stock-diff": {
+    location: "asia-northeast1",
+    queue: "CALCULATE_STOCK_DIFF_PROCESS",
+  },
+  "mq-calculate-current-stock": {
+    location: "asia-northeast1",
+    queue: "CALCULATE_CURRENT_STOCK_PROCESS",
+  },
+  "mq-persistent": {
+    location: "asia-northeast1",
+    queue: "PERSISTENT_PROCESS",
+  },
 } as const);
 
 export type TargetKey = keyof typeof Targets;
 
 export const Metrics = Object.freeze({
   "cpu-limit-util-max": {
-    queryBuilder: (labels: TargetLabels, range: string) => {
+    type: "prometheus",
+    queryBuilder: (labels: TargetLabels, p: any) => {
       const sel = Selector.buildSelector(
         "kubernetes.io/container/cpu/limit_utilization",
         labels
       );
-      return `max_over_time(${sel}[${range}])`;
+      return `max_over_time(${sel}[${p.range}])`;
     },
   },
   "mem-limit-util-max": {
-    queryBuilder: (labels: TargetLabels, range: string) => {
+    type: "prometheus",
+    queryBuilder: (labels: TargetLabels, p: any) => {
       const sel = Selector.buildSelector(
         "kubernetes.io/container/memory/limit_utilization",
         labels
       );
-      return `max_over_time(${sel}[${range}])`;
+      return `max_over_time(${sel}[${p.range}])`;
     },
+  },
+  "rabbitmq-queue-messages-max": {
+    type: "prometheus",
+    queryBuilder: (labels: TargetLabels, p: any) => {
+      const sel = Selector.buildSelector("rabbitmq_queue_messages", labels);
+      return `max_over_time(${sel}[${p.range}])`;
+    },
+  },
+  // Cloud Logging metrics
+  "log-delivery-file-count": {
+    type: "logging",
+    queryBuilder: (labels: TargetLabels, p: any) =>
+      `resource.type="k8s_container" ` +
+      `AND resource.labels.location="${labels.location}" ` +
+      `AND resource.labels.container_name="${labels.container_name}" ` +
+      `AND timestamp >= "${p.startIso}" AND timestamp <= "${p.endIso}" ` +
+      `AND textPayload:"pubsub processMessage Start File:"`,
+    aggregator: (payloads: string[]) => {
+      const fileRegex = /(?:File(?:name)?|Path)[:= ]+(\S+)/i;
+      const uniqueFiles = new Set<string>();
+      for (const p of payloads) {
+        const match = p.match(fileRegex);
+        if (match) uniqueFiles.add(match[1]);
+      }
+      return uniqueFiles.size;
+    },
+  },
+  "log-processed-message-count": {
+    type: "logging",
+    queryBuilder: (labels: TargetLabels, p: any) =>
+      `resource.type="k8s_container" ` +
+      `AND resource.labels.location="${labels.location}" ` +
+      `AND resource.labels.container_name="${labels.container_name}" ` +
+      `AND timestamp >= "${p.startIso}" AND timestamp <= "${p.endIso}" ` +
+      `AND textPayload:"pubsub processMessage End File:"`,
+    aggregator: (payloads: string[]) => payloads.length,
   },
 } as const);
 
@@ -120,6 +182,8 @@ export const OutputColumns: Record<TargetKey, Partial<Record<MetricKey, number>>
     "stock-conversion": {
       "cpu-limit-util-max": col_("Y"),
       "mem-limit-util-max": col_("Z"),
+      "log-delivery-file-count": col_("O"),
+      "log-processed-message-count": col_("P"),
     },
     "new-stock": {
       "cpu-limit-util-max": col_("AA"),
@@ -172,5 +236,17 @@ export const OutputColumns: Record<TargetKey, Partial<Record<MetricKey, number>>
     "db-business10": {
       "cpu-limit-util-max": col_("AY"),
       "mem-limit-util-max": col_("AZ"),
+    },
+    "mq-calculate-stock": {
+      "rabbitmq-queue-messages-max": col_("BA"),
+    },
+    "mq-calculate-stock-diff": {
+      "rabbitmq-queue-messages-max": col_("BB"),
+    },
+    "mq-calculate-current-stock": {
+      "rabbitmq-queue-messages-max": col_("BC"),
+    },
+    "mq-persistent": {
+      "rabbitmq-queue-messages-max": col_("BD"),
     },
   });

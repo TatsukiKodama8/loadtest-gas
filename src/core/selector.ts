@@ -15,6 +15,7 @@ export const Selector = (() => {
         "namespace_name",
         "pod_name",
         "container_name",
+        "queue",
       ]);
 
       const merged: Labels = { __name__: metricName, ...(labels ?? {}) };

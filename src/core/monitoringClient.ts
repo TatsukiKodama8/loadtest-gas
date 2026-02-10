@@ -7,7 +7,16 @@ export const MonitoringClient = (() => {
     return ScriptApp.getOAuthToken();
   }
 
-  function fetchJson(url: string, opts: { userProjectId: string, method?: string, headers?: any, muteHttpExceptions?: boolean }) {
+  function fetchJson(
+    url: string,
+    opts: {
+      userProjectId: string;
+      method?: string;
+      headers?: any;
+      payload?: string;
+      muteHttpExceptions?: boolean;
+    }
+  ) {
     const method = (opts.method ?? "get") as GoogleAppsScript.URL_Fetch.HttpMethod;
     const muteHttpExceptions = opts.muteHttpExceptions ?? true;
 
@@ -18,7 +27,17 @@ export const MonitoringClient = (() => {
 
     Logger.info("Fetch URL", { file, func: "fetchJson", url, method });
 
-    const res = UrlFetchApp.fetch(url, { method, headers, muteHttpExceptions });
+    const fetchOpts: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {
+      method,
+      headers,
+      muteHttpExceptions,
+    };
+
+    if (opts.payload) {
+      fetchOpts.payload = opts.payload;
+    }
+
+    const res = UrlFetchApp.fetch(url, fetchOpts);
 
     const status = res.getResponseCode();
     const text = res.getContentText();
@@ -32,7 +51,12 @@ export const MonitoringClient = (() => {
     }
 
     if (status >= 400) {
-      Logger.error("Fetch failed", text, { file, func: "fetchJson", status, url });
+      Logger.error("Fetch failed", text, {
+        file,
+        func: "fetchJson",
+        status,
+        url,
+      });
     }
 
     return { status, json, text, headers: resHeaders };
