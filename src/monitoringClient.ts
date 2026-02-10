@@ -1,16 +1,12 @@
-/**
- * monitoringClient.gs
- * Responsibility: OAuth token + UrlFetch + required headers
- */
-const MonitoringClient = (() => {
+import { Logger } from "./logger";
+
+const file = "monitoringClient.ts";
+
+export const MonitoringClient = (() => {
   function getAccessToken_(): string {
     return ScriptApp.getOAuthToken();
   }
 
-  /**
-   * @param {string} url
-   * @param {{ userProjectId: string, method?: string, headers?: any, muteHttpExceptions?: boolean }} opts
-   */
   function fetchJson(url: string, opts: { userProjectId: string, method?: string, headers?: any, muteHttpExceptions?: boolean }) {
     const method = (opts.method ?? "get") as GoogleAppsScript.URL_Fetch.HttpMethod;
     const muteHttpExceptions = opts.muteHttpExceptions ?? true;
@@ -19,6 +15,8 @@ const MonitoringClient = (() => {
       Authorization: `Bearer ${getAccessToken_()}`,
       "X-Goog-User-Project": opts.userProjectId,
     });
+
+    Logger.info("Fetch URL", { file, func: "fetchJson", url, method });
 
     const res = UrlFetchApp.fetch(url, { method, headers, muteHttpExceptions });
 
@@ -30,7 +28,11 @@ const MonitoringClient = (() => {
     try {
       json = text ? JSON.parse(text) : null;
     } catch (e) {
-      // ignore parse errors
+      // ignore
+    }
+
+    if (status >= 400) {
+      Logger.error("Fetch failed", text, { file, func: "fetchJson", status, url });
     }
 
     return { status, json, text, headers: resHeaders };
