@@ -50,6 +50,6 @@ The project uses standard ESModules (`import/export`), which are bundled by `esb
 ## Key Configuration (src/const.ts)
 
 - `SheetConfig`: Defines columns for Date, Start Time, and End Time.
-- `Targets`: List of containers and their labels to monitor.
-- `Metrics`: PromQL query templates.
+- `Targets`: Record of container keys to their labels.
+- `Metrics`: Record of metric keys to their query builders.
 - `OutputColumns`: Mapping of `Target` + `Metric` to specific Spreadsheet columns.

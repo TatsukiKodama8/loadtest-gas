@@ -1,5 +1,11 @@
 import { SheetConfig } from "./config";
-import { Targets, Metrics, OutputColumns } from "./definitions";
+import {
+  Targets,
+  Metrics,
+  OutputColumns,
+  TargetKey,
+  MetricKey,
+} from "./definitions";
 import { MetricsService } from "./metricsService";
 import { Logger } from "./logger";
 
@@ -20,12 +26,21 @@ function runUpdateAllRows() {
 
   const sheet = ss.getSheetByName(SheetConfig.SHEET_NAME);
   if (!sheet) {
-    const names = ss.getSheets().map(s => s.getName()).join(", ");
-    throw new Error(`Sheet not found: "${SheetConfig.SHEET_NAME}". Available: [${names}]`);
+    const names = ss
+      .getSheets()
+      .map((s) => s.getName())
+      .join(", ");
+    throw new Error(
+      `Sheet not found: "${SheetConfig.SHEET_NAME}". Available: [${names}]`
+    );
   }
 
   const lastRow = sheet.getLastRow();
-  Logger.info("Starting batch update", { file, func: "runUpdateAllRows", lastRow });
+  Logger.info("Starting batch update", {
+    file,
+    func: "runUpdateAllRows",
+    lastRow,
+  });
 
   for (let row = SheetConfig.HEADER_ROWS + 1; row <= lastRow; row++) {
     updateRow_(sheet, row);
@@ -53,17 +68,20 @@ function updateRow_(sheet: GoogleAppsScript.Spreadsheet.Sheet, row: number) {
       return;
     }
 
-    const range = (MetricsService as any).toPromDurationSeconds_(startJst, endJst);
+    const range = MetricsService.toPromDurationSeconds_(
+      startJst,
+      endJst
+    );
 
-    for (const t of (Targets as any[])) {
-      const outByMetric = (OutputColumns as any)[t.key];
+    for (const [targetKey, labels] of Object.entries(Targets)) {
+      const outByMetric = OutputColumns[targetKey as TargetKey];
       if (!outByMetric) continue;
 
-      for (const m of (Metrics as any[])) {
-        const col = outByMetric[m.key];
+      for (const [metricKey, m] of Object.entries(Metrics)) {
+        const col = outByMetric[metricKey as MetricKey];
         if (!col) continue;
 
-        const promql = m.queryBuilder(t, range);
+        const promql = m.queryBuilder(labels, range);
 
         try {
           const v = MetricsService.fetchScalarMaxInRangeJst({
@@ -78,8 +96,8 @@ function updateRow_(sheet: GoogleAppsScript.Spreadsheet.Sheet, row: number) {
             file,
             func: "updateRow_",
             row,
-            target: t.key,
-            metric: m.key,
+            target: targetKey,
+            metric: metricKey,
           });
           sheet.getRange(row, col).setValue("");
         }
@@ -89,12 +107,10 @@ function updateRow_(sheet: GoogleAppsScript.Spreadsheet.Sheet, row: number) {
 }
 
 function clearOutputs_(sheet: GoogleAppsScript.Spreadsheet.Sheet, row: number) {
-  for (const t of (Targets as any[])) {
-    const outByMetric = (OutputColumns as any)[t.key];
+  for (const [targetKey, outByMetric] of Object.entries(OutputColumns)) {
     if (!outByMetric) continue;
 
-    for (const m of (Metrics as any[])) {
-      const col = outByMetric[m.key];
+    for (const col of Object.values(outByMetric)) {
       if (!col) continue;
       sheet.getRange(row, col).setValue("");
     }
