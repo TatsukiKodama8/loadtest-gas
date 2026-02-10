@@ -1,13 +1,13 @@
-import { SheetConfig } from "./config";
+import { SheetConfig } from "./config/config";
 import {
   Targets,
   Metrics,
   OutputColumns,
   TargetKey,
   MetricKey,
-} from "./definitions";
-import { MetricsService } from "./metricsService";
-import { Logger } from "./logger";
+} from "./config/definitions";
+import { MetricsService } from "./core/metricsService";
+import { Logger } from "./utils/logger";
 
 const file = "main.ts";
 

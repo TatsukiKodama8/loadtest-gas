@@ -1,5 +1,5 @@
-import { Selector, Labels } from "./selector";
-import { col_ } from "./utils";
+import { Selector, Labels } from "../core/selector";
+import { col_ } from "../utils/utils";
 
 /**
  * Labels for a monitored container target.

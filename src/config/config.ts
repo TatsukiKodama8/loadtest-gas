@@ -1,4 +1,4 @@
-import { col_ } from "./utils";
+import { col_ } from "../utils/utils";
 
 export const SheetConfig = Object.freeze({
   SHEET_NAME: "test",

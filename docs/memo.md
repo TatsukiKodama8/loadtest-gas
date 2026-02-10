@@ -43,3 +43,19 @@
 - [x] `src/definitions.ts`: `OutputColumns` の型定義を厳密化。
 - [x] `src/main.ts`: `Object.entries()` を用いたループへの変更と `any` キャストの削除。
 - [x] 動作確認: `npm run build` および `npm test` の実行。
+
+## 2026-02-10: ディレクトリ構造の整理
+
+### 目的
+- フラットだった `src/` ディレクトリを役割ごとに分割し、コードの見通しを良くする。
+- 依存関係（Core, Config, Utils）を明確にする。
+
+### 実施内容
+- [x] ディレクトリ作成: `src/core`, `src/config`, `src/utils`
+- [x] ファイル移動:
+    - `core/`: `metricsService`, `prometheusApi`, `monitoringClient`, `selector`
+    - `config/`: `config`, `definitions`
+    - `utils/`: `utils`, `logger`
+- [x] 全ファイルの `import` パス更新。
+- [x] `GEMINI.md` および `docs/architecture.md` の構造説明を更新。
+- [x] 動作確認: `npm run build` および `npm test` のパスを確認。
