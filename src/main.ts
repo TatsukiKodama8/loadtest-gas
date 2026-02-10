@@ -1,11 +1,16 @@
 import { SheetConfig, Targets, Metrics, OutputColumns } from "./const";
 import { MetricsService } from "./metricsService";
+import { Logger } from "./logger";
+
+const FILE = "main.ts";
 
 /**
  * Global entry point for GAS
  */
 export function main() {
-  runUpdateAllRows();
+  Logger.trace(FILE, "main", {}, () => {
+    runUpdateAllRows();
+  });
 }
 
 function runUpdateAllRows() {
@@ -19,54 +24,67 @@ function runUpdateAllRows() {
   }
 
   const lastRow = sheet.getLastRow();
+  Logger.info("Starting batch update", { FILE, func: "runUpdateAllRows", lastRow });
+
   for (let row = SheetConfig.HEADER_ROWS + 1; row <= lastRow; row++) {
     updateRow_(sheet, row);
   }
 }
 
 function updateRow_(sheet: GoogleAppsScript.Spreadsheet.Sheet, row: number) {
-  const datePart = sheet.getRange(row, SheetConfig.COL_DATE).getValue();
-  const startPart = sheet.getRange(row, SheetConfig.COL_START_TIME).getValue();
-  const endPart = sheet.getRange(row, SheetConfig.COL_END_TIME).getValue();
+  Logger.trace(FILE, "updateRow_", { row }, () => {
+    const datePart = sheet.getRange(row, SheetConfig.COL_DATE).getValue();
+    const startPart = sheet.getRange(row, SheetConfig.COL_START_TIME).getValue();
+    const endPart = sheet.getRange(row, SheetConfig.COL_END_TIME).getValue();
 
-  const startJst = combineDateAndTime_(datePart, startPart);
-  const endJst = combineDateAndTime_(datePart, endPart);
+    const startJst = combineDateAndTime_(datePart, startPart);
+    const endJst = combineDateAndTime_(datePart, endPart);
 
-  if (startJst == null || endJst == null || endJst <= startJst) {
-    Logger.log(
-      `[main.gs] Invalid time range at row=${row} start=${startJst} end=${endJst}`
-    );
+    if (startJst == null || endJst == null || endJst <= startJst) {
+      Logger.info("Invalid time range, skipping row", {
+        FILE,
+        func: "updateRow_",
+        row,
+        startJst,
+        endJst,
+      });
+      clearOutputs_(sheet, row);
+      return;
+    }
 
-    clearOutputs_(sheet, row);
-    return;
-  }
+    const range = (MetricsService as any).toPromDurationSeconds_(startJst, endJst);
 
-  const range = (MetricsService as any).toPromDurationSeconds_(startJst, endJst);
+    for (const t of (Targets as any[])) {
+      const outByMetric = (OutputColumns as any)[t.key];
+      if (!outByMetric) continue;
 
-  for (const t of (Targets as any[])) {
-    const outByMetric = (OutputColumns as any)[t.key];
-    if (!outByMetric) continue;
+      for (const m of (Metrics as any[])) {
+        const col = outByMetric[m.key];
+        if (!col) continue;
 
-    for (const m of (Metrics as any[])) {
-      const col = outByMetric[m.key];
-      if (!col) continue;
+        const promql = m.queryBuilder(t, range);
 
-      const promql = m.queryBuilder(t, range);
+        try {
+          const v = MetricsService.fetchScalarMaxInRangeJst({
+            startJst,
+            endJst,
+            promql,
+          });
 
-      try {
-        const v = MetricsService.fetchScalarMaxInRangeJst({
-          startJst,
-          endJst,
-          promql,
-        });
-
-        sheet.getRange(row, col).setValue(v == null ? "" : v);
-      } catch (e) {
-        Logger.log(`[main.gs] row=${row} target=${t.key} metric=${m.key} error=${e}`);
-        sheet.getRange(row, col).setValue("");
+          sheet.getRange(row, col).setValue(v == null ? "" : v);
+        } catch (e) {
+          Logger.error("Failed to fetch metric", e, {
+            FILE,
+            func: "updateRow_",
+            row,
+            target: t.key,
+            metric: m.key,
+          });
+          sheet.getRange(row, col).setValue("");
+        }
       }
     }
-  }
+  });
 }
 
 function clearOutputs_(sheet: GoogleAppsScript.Spreadsheet.Sheet, row: number) {

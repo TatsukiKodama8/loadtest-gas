@@ -1,3 +1,7 @@
+import { Logger } from "./logger";
+
+const FILE = "monitoringClient.ts";
+
 export const MonitoringClient = (() => {
   function getAccessToken_(): string {
     return ScriptApp.getOAuthToken();
@@ -12,6 +16,8 @@ export const MonitoringClient = (() => {
       "X-Goog-User-Project": opts.userProjectId,
     });
 
+    Logger.info("Fetch URL", { FILE, func: "fetchJson", url, method });
+
     const res = UrlFetchApp.fetch(url, { method, headers, muteHttpExceptions });
 
     const status = res.getResponseCode();
@@ -23,6 +29,10 @@ export const MonitoringClient = (() => {
       json = text ? JSON.parse(text) : null;
     } catch (e) {
       // ignore
+    }
+
+    if (status >= 400) {
+      Logger.error("Fetch failed", text, { FILE, func: "fetchJson", status, url });
     }
 
     return { status, json, text, headers: resHeaders };

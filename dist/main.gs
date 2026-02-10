@@ -258,7 +258,51 @@ var GAS_ENTRY = (() => {
     }
   });
 
+  // src/logger.ts
+  var Logger = (() => {
+    function info(message, context) {
+      const payload = {
+        severity: "INFO",
+        message,
+        timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+        ...context
+      };
+      console.log(JSON.stringify(payload));
+    }
+    function error(message, err, context) {
+      const payload = {
+        severity: "ERROR",
+        message,
+        exception: err instanceof Error ? err.message : String(err),
+        stack: err instanceof Error ? err.stack : void 0,
+        timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+        ...context
+      };
+      console.error(JSON.stringify(payload));
+    }
+    function trace(file, func, args, execute) {
+      const start = Date.now();
+      info(`[START] ${func}`, { file, func, args });
+      try {
+        const result = execute();
+        const duration = Date.now() - start;
+        info(`[END] ${func}`, { file, func, duration: `${duration}ms` });
+        return result;
+      } catch (e) {
+        const duration = Date.now() - start;
+        error(`[FAILED] ${func}`, e, { file, func, duration: `${duration}ms`, args });
+        throw e;
+      }
+    }
+    return Object.freeze({
+      info,
+      error,
+      trace
+    });
+  })();
+
   // src/monitoringClient.ts
+  var FILE = "monitoringClient.ts";
   var MonitoringClient = (() => {
     function getAccessToken_() {
       return ScriptApp.getOAuthToken();
@@ -270,6 +314,7 @@ var GAS_ENTRY = (() => {
         Authorization: `Bearer ${getAccessToken_()}`,
         "X-Goog-User-Project": opts.userProjectId
       });
+      Logger.info("Fetch URL", { FILE, func: "fetchJson", url, method });
       const res = UrlFetchApp.fetch(url, { method, headers, muteHttpExceptions });
       const status = res.getResponseCode();
       const text = res.getContentText();
@@ -279,45 +324,54 @@ var GAS_ENTRY = (() => {
         json = text ? JSON.parse(text) : null;
       } catch (e) {
       }
+      if (status >= 400) {
+        Logger.error("Fetch failed", text, { FILE, func: "fetchJson", status, url });
+      }
       return { status, json, text, headers: resHeaders };
     }
     return Object.freeze({ fetchJson });
   })();
 
   // src/prometheusApi.ts
+  var FILE2 = "prometheusApi.ts";
   var PrometheusApi = (() => {
     function query(p) {
-      const base = `https://monitoring.googleapis.com/v1/projects/${encodeURIComponent(p.projectId)}/location/global/prometheus/api/v1/query`;
-      const url = base + `?query=${encodeURIComponent(p.query)}&time=${encodeURIComponent(p.time.toISOString())}`;
-      const r = MonitoringClient.fetchJson(url, { userProjectId: p.projectId });
-      return { status: r.status, json: r.json, text: r.text };
+      return Logger.trace(FILE2, "query", { query: p.query }, () => {
+        const base = `https://monitoring.googleapis.com/v1/projects/${encodeURIComponent(p.projectId)}/location/global/prometheus/api/v1/query`;
+        const url = base + `?query=${encodeURIComponent(p.query)}&time=${encodeURIComponent(p.time.toISOString())}`;
+        const r = MonitoringClient.fetchJson(url, { userProjectId: p.projectId });
+        return { status: r.status, json: r.json, text: r.text };
+      });
     }
     return Object.freeze({ query });
   })();
 
   // src/metricsService.ts
+  var FILE3 = "metricsService.ts";
   var MetricsService = (() => {
     function toPromDurationSeconds_(startJst, endJst) {
       const sec = Math.max(1, Math.floor((endJst.getTime() - startJst.getTime()) / 1e3));
       return `${sec}s`;
     }
     function fetchScalarMaxInRangeJst(p) {
-      const projectId = GcpConfig.PROJECT_ID;
-      const r = PrometheusApi.query({
-        projectId,
-        query: p.promql,
-        time: p.endJst
+      return Logger.trace(FILE3, "fetchScalarMaxInRangeJst", { promql: p.promql }, () => {
+        const projectId = GcpConfig.PROJECT_ID;
+        const r = PrometheusApi.query({
+          projectId,
+          query: p.promql,
+          time: p.endJst
+        });
+        if (r.status !== 200) {
+          throw new Error(
+            `PromQL query failed: status=${r.status} body=${(r.text ?? "").slice(0, 500)}`
+          );
+        }
+        const result0 = r.json?.data?.result?.[0];
+        const vStr = result0?.value?.[1];
+        if (vStr == null) return null;
+        const v = Number(vStr);
+        return Number.isFinite(v) ? v : null;
       });
-      if (r.status !== 200) {
-        throw new Error(
-          `[metricsService.gs] PromQL query failed: status=${r.status} body=${(r.text ?? "").slice(0, 500)}`
-        );
-      }
-      const result0 = r.json?.data?.result?.[0];
-      const vStr = result0?.value?.[1];
-      if (vStr == null) return null;
-      const v = Number(vStr);
-      return Number.isFinite(v) ? v : null;
     }
     return Object.freeze({
       toPromDurationSeconds_,
@@ -326,8 +380,11 @@ var GAS_ENTRY = (() => {
   })();
 
   // src/main.ts
+  var FILE4 = "main.ts";
   function main() {
-    runUpdateAllRows();
+    Logger.trace(FILE4, "main", {}, () => {
+      runUpdateAllRows();
+    });
   }
   function runUpdateAllRows() {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -338,44 +395,57 @@ var GAS_ENTRY = (() => {
       throw new Error(`Sheet not found: "${SheetConfig.SHEET_NAME}". Available: [${names}]`);
     }
     const lastRow = sheet.getLastRow();
+    Logger.info("Starting batch update", { FILE: FILE4, func: "runUpdateAllRows", lastRow });
     for (let row = SheetConfig.HEADER_ROWS + 1; row <= lastRow; row++) {
       updateRow_(sheet, row);
     }
   }
   function updateRow_(sheet, row) {
-    const datePart = sheet.getRange(row, SheetConfig.COL_DATE).getValue();
-    const startPart = sheet.getRange(row, SheetConfig.COL_START_TIME).getValue();
-    const endPart = sheet.getRange(row, SheetConfig.COL_END_TIME).getValue();
-    const startJst = combineDateAndTime_(datePart, startPart);
-    const endJst = combineDateAndTime_(datePart, endPart);
-    if (startJst == null || endJst == null || endJst <= startJst) {
-      Logger.log(
-        `[main.gs] Invalid time range at row=${row} start=${startJst} end=${endJst}`
-      );
-      clearOutputs_(sheet, row);
-      return;
-    }
-    const range = MetricsService.toPromDurationSeconds_(startJst, endJst);
-    for (const t of Targets) {
-      const outByMetric = OutputColumns[t.key];
-      if (!outByMetric) continue;
-      for (const m of Metrics) {
-        const col = outByMetric[m.key];
-        if (!col) continue;
-        const promql = m.queryBuilder(t, range);
-        try {
-          const v = MetricsService.fetchScalarMaxInRangeJst({
-            startJst,
-            endJst,
-            promql
-          });
-          sheet.getRange(row, col).setValue(v == null ? "" : v);
-        } catch (e) {
-          Logger.log(`[main.gs] row=${row} target=${t.key} metric=${m.key} error=${e}`);
-          sheet.getRange(row, col).setValue("");
+    Logger.trace(FILE4, "updateRow_", { row }, () => {
+      const datePart = sheet.getRange(row, SheetConfig.COL_DATE).getValue();
+      const startPart = sheet.getRange(row, SheetConfig.COL_START_TIME).getValue();
+      const endPart = sheet.getRange(row, SheetConfig.COL_END_TIME).getValue();
+      const startJst = combineDateAndTime_(datePart, startPart);
+      const endJst = combineDateAndTime_(datePart, endPart);
+      if (startJst == null || endJst == null || endJst <= startJst) {
+        Logger.info("Invalid time range, skipping row", {
+          FILE: FILE4,
+          func: "updateRow_",
+          row,
+          startJst,
+          endJst
+        });
+        clearOutputs_(sheet, row);
+        return;
+      }
+      const range = MetricsService.toPromDurationSeconds_(startJst, endJst);
+      for (const t of Targets) {
+        const outByMetric = OutputColumns[t.key];
+        if (!outByMetric) continue;
+        for (const m of Metrics) {
+          const col = outByMetric[m.key];
+          if (!col) continue;
+          const promql = m.queryBuilder(t, range);
+          try {
+            const v = MetricsService.fetchScalarMaxInRangeJst({
+              startJst,
+              endJst,
+              promql
+            });
+            sheet.getRange(row, col).setValue(v == null ? "" : v);
+          } catch (e) {
+            Logger.error("Failed to fetch metric", e, {
+              FILE: FILE4,
+              func: "updateRow_",
+              row,
+              target: t.key,
+              metric: m.key
+            });
+            sheet.getRange(row, col).setValue("");
+          }
         }
       }
-    }
+    });
   }
   function clearOutputs_(sheet, row) {
     for (const t of Targets) {
