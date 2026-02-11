@@ -8,6 +8,7 @@ export const SheetConfig = Object.freeze({
   COL_DATE: col_("H"),
   COL_START_TIME: col_("I"),
   COL_END_TIME: col_("K"),
+  COL_STATUS: col_("BG"),
 });
 
 export const GcpConfig = Object.freeze({
