@@ -1,4 +1,4 @@
-import { Logger } from "./logger";
+import { Logger } from "../utils/logger";
 
 const file = "selector.ts";
 
@@ -15,6 +15,8 @@ export const Selector = (() => {
         "namespace_name",
         "pod_name",
         "container_name",
+        "queue",
+        "subscription_id",
       ]);
 
       const merged: Labels = { __name__: metricName, ...(labels ?? {}) };

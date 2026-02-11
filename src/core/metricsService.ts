@@ -1,6 +1,6 @@
-import { GcpConfig } from "./config";
+import { GcpConfig } from "../config/config";
 import { PrometheusApi } from "./prometheusApi";
-import { Logger } from "./logger";
+import { Logger } from "../utils/logger";
 
 const file = "metricsService.ts";
 

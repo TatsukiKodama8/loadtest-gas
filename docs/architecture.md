@@ -100,13 +100,16 @@ classDiagram
 ## Module Responsibilities
 
 ### Configuration & Definitions
-- **config.ts**: Environment-specific settings (GCP Project ID, Sheet names).
-- **definitions.ts**: Domain-specific definitions. Mapping of targets to metrics and their corresponding spreadsheet columns.
+- **src/config/config.ts**: Environment-specific settings (GCP Project ID, Sheet names).
+- **src/config/definitions.ts**: Domain-specific definitions. Mapping of targets to metrics and their corresponding spreadsheet columns.
 
 ### Core Logic
-- **main.ts**: Orchestrates the spreadsheet update process.
-- **metricsService.ts**: High-level service for fetching and processing metrics.
-- **prometheusApi.ts**: Low-level client for the Google Cloud Monitoring Prometheus API.
-- **monitoringClient.ts**: Handles HTTP requests and OAuth authentication.
-- **selector.ts**: Utility to build PromQL selectors from label maps.
-- **logger.ts**: Structured logging utility.
+- **src/main.ts**: Entry point. Orchestrates the spreadsheet update process.
+- **src/core/metricsService.ts**: High-level service for fetching and processing metrics.
+- **src/core/prometheusApi.ts**: Low-level client for the Google Cloud Monitoring Prometheus API.
+- **src/core/monitoringClient.ts**: Handles HTTP requests and OAuth authentication.
+- **src/core/selector.ts**: Utility to build PromQL selectors from label maps.
+
+### Utilities
+- **src/utils/logger.ts**: Structured logging utility.
+- **src/utils/utils.ts**: Common utility functions.

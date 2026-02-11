@@ -1,5 +1,5 @@
 import { MonitoringClient } from "./monitoringClient";
-import { Logger } from "./logger";
+import { Logger } from "../utils/logger";
 
 const file = "prometheusApi.ts";
 

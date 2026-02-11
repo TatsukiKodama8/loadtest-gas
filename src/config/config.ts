@@ -1,4 +1,4 @@
-import { col_ } from "./utils";
+import { col_ } from "../utils/utils";
 
 export const SheetConfig = Object.freeze({
   SHEET_NAME: "test",
@@ -7,7 +7,7 @@ export const SheetConfig = Object.freeze({
   // 日付、テスト開始時刻、終了時刻
   COL_DATE: col_("H"),
   COL_START_TIME: col_("I"),
-  COL_END_TIME: col_("J"),
+  COL_END_TIME: col_("K"),
 });
 
 export const GcpConfig = Object.freeze({
