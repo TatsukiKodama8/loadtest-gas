@@ -9,6 +9,8 @@ export interface TargetLabels extends Labels {
   location?: string;
   container_name?: string;
   queue?: string;
+  subscription_id?: string;
+  usecase_id?: number;
 }
 
 /**
@@ -25,10 +27,15 @@ export interface MetricDefinition {
 }
 
 export const Targets = Object.freeze({
+  "pubsub-subcription-sales": {
+    location: "asia-northeast1",
+    subscription_id: "shinise-stockmiddleware-sales-import-topic-subcription",
+  },
   "stock-conversion": {
     monitored_resource: "k8s_container",
     location: "asia-northeast1",
     container_name: "stock-conversion-service-app",
+    subscription_id: "shinise-stockmiddleware-sales-import-topic-subcription",
   },
   "new-stock": {
     monitored_resource: "k8s_container",
@@ -44,6 +51,12 @@ export const Targets = Object.freeze({
     monitored_resource: "k8s_container",
     location: "asia-northeast1",
     container_name: "db-process-rec-app",
+  },
+  "db-common": {
+    monitored_resource: "k8s_container",
+    location: "asia-northeast1",
+    namespace_name: "db-common",
+    container_name: "db-common-rec-app",
   },
   "db-business1": {
     monitored_resource: "k8s_container",
@@ -144,7 +157,19 @@ export const Metrics = Object.freeze({
       return `max_over_time(${sel}[${p.range}])`;
     },
   },
-  // Cloud Logging metrics
+  "pubsub-ack-rate-avg": {
+    type: "prometheus",
+    queryBuilder: (labels: TargetLabels, p: any) => {
+      const sel = Selector.buildSelector(
+        "pubsub.googleapis.com/subscription/ack_message_count",
+        {
+          monitored_resource: "pubsub_subscription",
+          subscription_id: labels.subscription_id,
+        }
+      );
+      return `sum(rate(${sel}[${p.range}]))`;
+    },
+  },
   "log-delivery-file-count": {
     type: "logging",
     queryBuilder: (labels: TargetLabels, p: any) =>
@@ -179,6 +204,9 @@ export type MetricKey = keyof typeof Metrics;
 
 export const OutputColumns: Record<TargetKey, Partial<Record<MetricKey, number>>> =
   Object.freeze({
+    "pubsub-subcription-sales": {
+      "pubsub-ack-rate-avg": col_("G"),
+    },
     "stock-conversion": {
       "cpu-limit-util-max": col_("Y"),
       "mem-limit-util-max": col_("Z"),
@@ -197,56 +225,60 @@ export const OutputColumns: Record<TargetKey, Partial<Record<MetricKey, number>>
       "cpu-limit-util-max": col_("AE"),
       "mem-limit-util-max": col_("AF"),
     },
-    "db-business1": {
+    "db-common": {
       "cpu-limit-util-max": col_("AG"),
       "mem-limit-util-max": col_("AH"),
     },
-    "db-business2": {
+    "db-business1": {
       "cpu-limit-util-max": col_("AI"),
       "mem-limit-util-max": col_("AJ"),
     },
-    "db-business3": {
+    "db-business2": {
       "cpu-limit-util-max": col_("AK"),
       "mem-limit-util-max": col_("AL"),
     },
-    "db-business4": {
+    "db-business3": {
       "cpu-limit-util-max": col_("AM"),
       "mem-limit-util-max": col_("AN"),
     },
-    "db-business5": {
+    "db-business4": {
       "cpu-limit-util-max": col_("AO"),
       "mem-limit-util-max": col_("AP"),
     },
-    "db-business6": {
+    "db-business5": {
       "cpu-limit-util-max": col_("AQ"),
       "mem-limit-util-max": col_("AR"),
     },
-    "db-business7": {
+    "db-business6": {
       "cpu-limit-util-max": col_("AS"),
       "mem-limit-util-max": col_("AT"),
     },
-    "db-business8": {
+    "db-business7": {
       "cpu-limit-util-max": col_("AU"),
       "mem-limit-util-max": col_("AV"),
     },
-    "db-business9": {
+    "db-business8": {
       "cpu-limit-util-max": col_("AW"),
       "mem-limit-util-max": col_("AX"),
     },
-    "db-business10": {
+    "db-business9": {
       "cpu-limit-util-max": col_("AY"),
       "mem-limit-util-max": col_("AZ"),
     },
+    "db-business10": {
+      "cpu-limit-util-max": col_("BA"),
+      "mem-limit-util-max": col_("BB"),
+    },
     "mq-calculate-stock": {
-      "rabbitmq-queue-messages-max": col_("BA"),
-    },
-    "mq-calculate-stock-diff": {
-      "rabbitmq-queue-messages-max": col_("BB"),
-    },
-    "mq-calculate-current-stock": {
       "rabbitmq-queue-messages-max": col_("BC"),
     },
-    "mq-persistent": {
+    "mq-calculate-stock-diff": {
       "rabbitmq-queue-messages-max": col_("BD"),
+    },
+    "mq-calculate-current-stock": {
+      "rabbitmq-queue-messages-max": col_("BE"),
+    },
+    "mq-persistent": {
+      "rabbitmq-queue-messages-max": col_("BF"),
     },
   });
