@@ -52,6 +52,11 @@ function runUpdateAllRows() {
 
 function updateRow_(sheet: GoogleAppsScript.Spreadsheet.Sheet, row: number) {
   Logger.trace(file, "updateRow_", { row }, () => {
+    const status = sheet.getRange(row, SheetConfig.COL_STATUS).getValue();
+    if (status === "DONE") {
+      return;
+    }
+
     const timeRange = getTimeRangeFromRow_(sheet, row);
 
     if (!timeRange) {
@@ -82,6 +87,8 @@ function updateRow_(sheet: GoogleAppsScript.Spreadsheet.Sheet, row: number) {
         endIso
       );
     }
+
+    sheet.getRange(row, SheetConfig.COL_STATUS).setValue("DONE");
   });
 }
 
@@ -194,6 +201,7 @@ function clearOutputs_(sheet: GoogleAppsScript.Spreadsheet.Sheet, row: number) {
       sheet.getRange(row, col).setValue("");
     }
   }
+  sheet.getRange(row, SheetConfig.COL_STATUS).setValue("");
 }
 
 export function combineDateAndTime_(datePart: any, timePart: any): Date | null {
